@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+---
+
+## [2.2.6] — 2026-03-10
+
+> ### 🐛 Fix Claude Thinking Tokens Invisible in Passthrough Mode
+
+### Bug Fixes
+
+- **Claude thinking tokens not visible (#289)** — When routing through Antigravity OAuth or any Claude provider, thinking blocks were being emitted as regular `delta.content` with `<think>/<\/think>` XML wrappers. Fixed: now correctly maps `thinking_delta` events to `delta.reasoning_content` so clients like Claude Code, Cursor, and Windsurf display the thinking panel properly.
+
+---
+
+## [2.2.5] — 2026-03-10
+
+> ### 🔧 Zero-Config Bootstrap · 🐛 Electron Black Screen Fix
+
+### Features
+
+- **Zero-config bootstrap (#252, #249)** — OmniRoute now auto-generates required secrets on first run across all deployment modes (npm, Docker, Electron Desktop App):
+  - `JWT_SECRET` (64-byte hex) — required for auth/sessions
+  - `STORAGE_ENCRYPTION_KEY` (32-byte hex) — required for SQLite encryption
+  - `API_KEY_SECRET` (32-byte hex) — required for API key signing
+  - Secrets are persisted to `{DATA_DIR}/server.env` and survive restarts, Docker volume remounts, and upgrades
+  - Friendly startup warnings if OAuth secrets (Antigravity, iFlow, Gemini) are not configured
+  - New **`scripts/bootstrap-env.mjs`** module — single source of truth for zero-config initialization
+
+### Bug Fixes
+
+- **Electron black screen on macOS/Windows/Linux** — The Next.js server was crashing silently because `JWT_SECRET` and `STORAGE_ENCRYPTION_KEY` are never present in desktop OS environments. Fixed by calling `bootstrapEnv()` before spawning `server.js`, with secrets persisted to Electron's `userData` directory.
+- **Dashboard bootstrap banner** — Added dismissable amber warning banner on the dashboard home when running in zero-config mode, showing where `server.env` is stored and how to customize secrets.
+
+### Note for Docker users
+
+Previously, `--env-file .env` was required to pass secrets to the container. Now OmniRoute will generate and persist them automatically in the mounted volume. Existing `DATA_DIR` secrets are always respected.
+
+---
+
+## [2.2.4] — 2026-03-10
+
+> ### 🔧 CI Fixes
+
+### CI
+
+- **docs-sync fix** — Updated `docs/openapi.yaml` version from `2.2.0` to `2.2.3` (was out of sync with `package.json`, causing CI lint failure)
+- **CHANGELOG format** — Added required `## [Unreleased]` section at top of `CHANGELOG.md` (required by `check:docs-sync` script)
+- **Electron Linux** — Added `gem install fpm` step to `electron-release.yml` Linux build job; `fpm` is required by `electron-builder` to package `.deb` installers but was not pre-installed on `ubuntu-latest` runners
+- **Docker publish** — Added `DOCKER_BUILDKIT_INLINE_CACHE` env; previous `502 error writing layer blob` was a transient Docker Hub network error
+
+---
+
+## [2.2.3] — 2026-03-10
+
+> ### 🐛 Bug Fixes · 🔧 Reliability
+
+### Bug Fixes
+
+- **Antigravity/Gemini CLI: remove fake projectId fallback (#285)** — OmniRoute was generating random fallback project IDs (e.g. `useful-fuze-a04c5`) when OAuth credentials lacked a real GCP `projectId`. This caused confusing `Permission denied on resource project` and `Verify your account` errors from Google. Now throws a clear actionable error: _reconnect OAuth so OmniRoute can load your real Cloud Code project_. Affects `antigravity.ts`, `openai-to-gemini.ts`, `geminiHelper.ts`.
+- **Claude Code: filter empty-named tool_use blocks across all message roles (#288)** — Pass 1.4 only filtered empty tool names from `assistant` messages. Extended to all roles (user, system). Also filters `tool_result` blocks missing `tool_use_id`, and top-level `body.tools` declarations with empty names. Prevents `Invalid input[x].name: empty string` 400 errors from Claude API.
+- **Docker: explicit @swc/helpers copy (#288)** — Added `COPY --from=builder /app/node_modules/@swc/helpers` to Dockerfile `runner-base` stage. The standalone tracer doesn't always include this package, causing runtime `MODULE_NOT_FOUND` crashloops.
+
+---
+
 ## [2.2.2] — 2026-03-10
 
 > ### ✨ New Features · 🔀 Model Aliases
